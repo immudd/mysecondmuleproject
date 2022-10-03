@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="5662ee53-549e-4dbb-adfa-933eb36093fc" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="batchprocess1Flow" doc:id="d00c654a-9a1a-4037-af94-4d52dbfd6fe2" >
+		<http:listener doc:name="Listener" doc:id="6be4629d-a4d5-4578-8483-0cda77c04d4d" config-ref="HTTP_Listener_config" path="/batchprocess1"/>
+		<set-payload value='#[[1,2,"apple",4,5,6,7]]' doc:name="[1,2,3,4,5,6,7]" doc:id="566ba580-1ef0-4ab3-a692-0da96c48c3e1" />
+		<batch:job jobName="batchprocess1Batch_Job" doc:id="d343d375-e5e5-4eae-8e1e-9bfeb80b3dd6" >
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="df98c952-8186-46cb-b621-d05be7248974" acceptPolicy="ALL">
+					<try doc:name="Try" doc:id="ba3b2efe-5775-4b9b-9e08-6549ba69427b" >
+						<set-payload value="#[payload * 10]" doc:name="Payload * 10" doc:id="e21e9fcd-08f6-47fa-8275-dcc780127e08" />
+						<error-handler >
+							<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2f67b316-6868-47c6-bb75-6aabab673c5b" >
+								<set-variable value="#[(vars.failedrecords default []) + payload]" doc:name="Set Variable" doc:id="2fc9f1fc-8f0d-47fa-8550-e6a544c4e711" variableName="failedrecords"/>
+							</on-error-continue>
+						</error-handler>
+					</try>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="4a4d7d70-b036-44cd-8161-e1974efe61de" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="259a4e76-17e6-4056-bf0b-0843380eb443" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="5e936b37-266a-4093-b314-f0b497f3ea1b" message="#[payload]"/>
+			</batch:on-complete>
+		</batch:job>
+		<ee:transform doc:name="Transform Message" doc:id="f85f13ac-bc4c-4700-8609-b7f9a22d5eeb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
